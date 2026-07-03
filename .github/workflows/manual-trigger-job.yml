@@ -9,6 +9,10 @@ jobs:
     steps:
     - name: Check out repo
       uses: actions/checkout@v4
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
     - name: Install az ml extension
       run: az extension add -n ml -y
     - name: Azure login
