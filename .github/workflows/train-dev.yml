@@ -22,6 +22,37 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Verify Dev environment and Azure secret
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+          ENVIRONMENT_MARKER: ${{ vars.ENVIRONMENT_MARKER }}
+        run: |
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Actor: $GITHUB_ACTOR"
+          echo "Ref: $GITHUB_REF"
+
+          if [ -z "$ENVIRONMENT_MARKER" ]; then
+            echo "ENVIRONMENT_MARKER is empty. The job may not be using the expected environment, or the environment variable was not created."
+            exit 1
+          fi
+
+          echo "Environment marker: $ENVIRONMENT_MARKER"
+
+          if [ -z "$AZURE_CREDENTIALS" ]; then
+            echo "AZURE_CREDENTIALS is empty or unavailable."
+            echo "Possible causes: environment not attached, PR from fork, Dependabot run, or secret name mismatch."
+            exit 1
+          fi
+
+          echo "$AZURE_CREDENTIALS" | jq -e '
+            has("clientId") and
+            has("clientSecret") and
+            has("subscriptionId") and
+            has("tenantId")
+          ' > /dev/null
+
+          echo "AZURE_CREDENTIALS exists and has the expected JSON keys."
+
       - name: Sign in to Azure
         uses: azure/login@v3
         with:
