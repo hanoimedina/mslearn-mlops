@@ -16,7 +16,7 @@ permissions:
 jobs:
   train-dev:
     runs-on: ubuntu-latest
-    environment: dev
+    environment: Dev
 
     steps:
       - name: Check out repository
