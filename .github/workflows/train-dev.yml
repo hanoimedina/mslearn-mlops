@@ -74,6 +74,20 @@ jobs:
             --query "[?state=='Enabled'].{name:name,id:id,isDefault:isDefault}" \
             -o table   
 
+      - name: Identify authenticated service principal
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          az account show \
+            --query '{
+              subscriptionId:id,
+              tenantId:tenantId,
+              authenticatedClientId:user.name,
+              identityType:user.type
+            }' \
+            -o table      
+
       - name: Test resource-group access
         shell: bash
         env:
