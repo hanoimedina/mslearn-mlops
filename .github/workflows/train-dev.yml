@@ -57,7 +57,26 @@ jobs:
         uses: azure/login@v3
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-            echo creds
+
+      - name: Verify Azure login and resources
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          echo "Current Azure account:"
+          az account show \
+            --query '{subscriptionName:name, subscriptionId:id, tenantId:tenantId, userType:user.type}' \
+            -o table
+      
+          echo "Subscriptions visible to this identity:"
+          az account list \
+            --query '[].{name:name,id:id,state:state,isDefault:isDefault}' \
+            -o table
+      
+          echo "Resource groups visible in the current subscription:"
+          az group list \
+            --query '[].{name:name,location:location}' \
+            -o table
 
       - name: Install Azure ML CLI
         run: |
