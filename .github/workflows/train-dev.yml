@@ -72,7 +72,19 @@ jobs:
           echo "Enabled subscriptions:"
           az account list \
             --query "[?state=='Enabled'].{name:name,id:id,isDefault:isDefault}" \
-            -o table    
+            -o table   
+
+      - name: Test resource-group access
+        shell: bash
+        env:
+          RG_NAME: "rg-ai300-l191425a337c9482f96"
+        run: |
+          set -euo pipefail
+      
+          az group show \
+            --name "$RG_NAME" \
+            --query '{name:name,id:id,location:location}' \
+            -o table
 
       - name: Verify Azure login and resources
         shell: bash
