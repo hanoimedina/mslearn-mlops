@@ -58,6 +58,104 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Check Azure subscription context
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          echo "az account show:"
+          az account show -o jsonc
+      
+          echo "az account list:"
+          az account list -o jsonc
+      
+          echo "Enabled subscriptions:"
+          az account list \
+            --query "[?state=='Enabled'].{name:name,id:id,isDefault:isDefault}" \
+            -o table   
+
+      - name: Identify authenticated service principal
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          az account show \
+            --query '{
+              subscriptionId:id,
+              tenantId:tenantId,
+              authenticatedClientId:user.name,
+              identityType:user.type
+            }' \
+            -o table 
+
+          az ad sp show \
+            --id "e2502fb9-c2ec-4d58-88e6-49a47827dcab" \
+            --query '{
+              displayName:displayName,
+              appId:appId,
+              servicePrincipalObjectId:id
+            }' \
+            -o table
+
+      - name: Verify credential identifiers
+        shell: bash
+        env:
+          EXPECTED_CLIENT_ID: e2502fb9-c2ec-4d58-88e6-49a47827dcab
+          EXPECTED_TENANT_ID: 6f15a077-bb5d-439c-9f85-5a7ac573defc
+          EXPECTED_SUBSCRIPTION_ID: 445aa2b8-fe52-4d2a-a1e1-309ea9334624
+          ACTUAL_CLIENT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS).clientId }}
+          ACTUAL_TENANT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS).tenantId }}
+          ACTUAL_SUBSCRIPTION_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS).subscriptionId }}
+        run: |
+          set -euo pipefail
+      
+          [[ "$ACTUAL_CLIENT_ID" == "$EXPECTED_CLIENT_ID" ]] || {
+            echo "::error::AZURE_CREDENTIALS contains an unexpected clientId"
+            exit 1
+          }
+      
+          [[ "$ACTUAL_TENANT_ID" == "$EXPECTED_TENANT_ID" ]] || {
+            echo "::error::AZURE_CREDENTIALS contains an unexpected tenantId"
+            exit 1
+          }
+      
+          [[ "$ACTUAL_SUBSCRIPTION_ID" == "$EXPECTED_SUBSCRIPTION_ID" ]] || {
+            echo "::error::AZURE_CREDENTIALS contains an unexpected subscriptionId"
+            exit 1
+          }
+
+      - name: Test resource-group access
+        shell: bash
+        env:
+          RG_NAME: "rg-ai300-l191425a337c9482f96"
+        run: |
+          set -euo pipefail
+      
+          az group show \
+            --name "$RG_NAME" \
+            --query '{name:name,id:id,location:location}' \
+            -o table
+
+      - name: Verify Azure login and resources
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          echo "Current Azure account:"
+          az account show \
+            --query '{subscriptionName:name, subscriptionId:id, tenantId:tenantId, userType:user.type}' \
+            -o table
+      
+          echo "Subscriptions visible to this identity:"
+          az account list \
+            --query '[].{name:name,id:id,state:state,isDefault:isDefault}' \
+            -o table
+      
+          echo "Resource groups visible in the current subscription:"
+          az group list \
+            --query '[].{name:name,location:location}' \
+            -o table
+
       - name: Install Azure ML CLI
         run: |
           az extension add -n ml -y
