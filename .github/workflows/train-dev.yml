@@ -57,6 +57,7 @@ jobs:
         uses: azure/login@v3
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+            echo creds
 
       - name: Install Azure ML CLI
         run: |
