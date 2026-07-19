@@ -58,6 +58,22 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Check Azure subscription context
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          echo "az account show:"
+          az account show -o jsonc
+      
+          echo "az account list:"
+          az account list -o jsonc
+      
+          echo "Enabled subscriptions:"
+          az account list \
+            --query "[?state=='Enabled'].{name:name,id:id,isDefault:isDefault}" \
+            -o table    
+
       - name: Verify Azure login and resources
         shell: bash
         run: |
